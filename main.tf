@@ -12,69 +12,17 @@ provider "aws" {
 
 }
 
-# Pet name for S3 bucket
-resource "random_pet" "lambda_bucket_name" {
-  prefix = "learn-terraform-functions"
-  length = 4
-}
-
-# S3 bucket using generated pet name
-resource "aws_s3_bucket" "lambda_bucket" {
-  bucket = random_pet.lambda_bucket_name.id
-}
-
-# 
-resource "aws_s3_bucket_ownership_controls" "lambda_bucket" {
-  bucket = aws_s3_bucket.lambda_bucket.id
-  rule {
-    object_ownership = "BucketOwnerPreferred"
-  }
-}
-
-# S3 access control list (set to private)
-resource "aws_s3_bucket_acl" "lambda_bucket" {
-  depends_on = [aws_s3_bucket_ownership_controls.lambda_bucket]
-
-  bucket = aws_s3_bucket.lambda_bucket.id
-  acl    = "private"
-}
-
-# Zip file to store lambda code
-data "archive_file" "lambda_hello_world" {
-  type = "zip"
-
-  source_dir  = "${path.module}/hello-world"
-  output_path = "${path.module}/hello-world.zip"
-}
-
-# S3 object that consists of the zipped lambda code
-resource "aws_s3_object" "lambda_hello_world" {
-  bucket = aws_s3_bucket.lambda_bucket.id
-
-  key    = "hello-world.zip"
-  source = data.archive_file.lambda_hello_world.output_path
-
-  etag = filemd5(data.archive_file.lambda_hello_world.output_path)
-}
-
-# Actual Lambda function based on zip archive
-resource "aws_lambda_function" "hello_world" {
-  function_name = "HelloWorld"
-
-  s3_bucket = aws_s3_bucket.lambda_bucket.id
-  s3_key    = aws_s3_object.lambda_hello_world.key
-
-  runtime = "nodejs20.x"
-  handler = "hello.handler"
-
-  source_code_hash = data.archive_file.lambda_hello_world.output_base64sha256
-
-  role = aws_iam_role.lambda_exec.arn
+# Actual Lambda function based on ECR image
+resource "aws_lambda_function" "container_ip" {
+  function_name = "containerIpLambda"
+  package_type  = "Image"
+  image_uri     = "654654184207.dkr.ecr.us-west-1.amazonaws.com/aws-lambda-static-ip-demo-ecr:latest"
+  role          = aws_iam_role.lambda_exec.arn
 }
 
 # Log group that stores messages from Lambda
-resource "aws_cloudwatch_log_group" "hello_world" {
-  name = "/aws/lambda/${aws_lambda_function.hello_world.function_name}"
+resource "aws_cloudwatch_log_group" "container_ip" {
+  name = "/aws/lambda/${aws_lambda_function.container_ip.function_name}"
 
   retention_in_days = 30
 }
@@ -102,6 +50,8 @@ resource "aws_iam_role_policy_attachment" "lambda_policy" {
   role       = aws_iam_role.lambda_exec.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
+/*
 
 # Define name for gateway and set its protocol to HTTP
 resource "aws_apigatewayv2_api" "lambda" {
@@ -159,12 +109,14 @@ resource "aws_cloudwatch_log_group" "api_gw" {
   retention_in_days = 30
 }
 
-# Gives API Gateway permission to invoke your Lambda function.
-resource "aws_lambda_permission" "api_gw" {
-  statement_id  = "AllowExecutionFromAPIGateway"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.hello_world.function_name
-  principal     = "apigateway.amazonaws.com"
+*/
 
-  source_arn = "${aws_apigatewayv2_api.lambda.execution_arn}/*/*"
-}
+# Gives API Gateway permission to invoke your Lambda function.
+# resource "aws_lambda_permission" "api_gw" {
+#   statement_id  = "AllowExecutionFromAPIGateway"
+#   action        = "lambda:InvokeFunction"
+#   function_name = aws_lambda_function.hello_world.function_name
+#   principal     = "apigateway.amazonaws.com"
+
+#   source_arn = "${aws_apigatewayv2_api.lambda.execution_arn}/*/*"
+# }
