@@ -16,7 +16,7 @@ provider "aws" {
 resource "aws_lambda_function" "container_ip" {
   function_name = "containerIpLambda"
   package_type  = "Image"
-  image_uri     = "654654184207.dkr.ecr.us-west-1.amazonaws.com/aws-lambda-static-ip-demo-ecr:latest"
+  image_uri     = "654654184207.dkr.ecr.us-west-1.amazonaws.com/lambda-static-ip-ecr:latest"
   role          = aws_iam_role.lambda_exec.arn
 }
 
