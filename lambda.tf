@@ -4,6 +4,10 @@ resource "aws_lambda_function" "container_ip" {
   package_type  = "Image"
   image_uri     = "654654184207.dkr.ecr.us-west-1.amazonaws.com/lambda-static-ip-ecr:latest"
   role          = aws_iam_role.lambda_exec.arn
+  vpc_config {
+    subnet_ids         = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
+    security_group_ids = [aws_default_security_group.default_security_group.id]
+  }
 }
 
 # Log group that stores messages from Lambda
@@ -35,4 +39,9 @@ resource "aws_iam_role" "lambda_exec" {
 resource "aws_iam_role_policy_attachment" "lambda_policy" {
   role       = aws_iam_role.lambda_exec.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment_lambda_vpc_access_execution" {
+  role       = aws_iam_role.lambda_exec.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
